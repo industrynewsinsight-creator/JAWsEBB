@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email List Checker</title>
+<style>
+  :root{
+    --bg:#FAFAF7;
+    --panel:#FFFFFF;
+    --ink:#1B1B18;
+    --muted:#5B584F;
+    --border:#DAD5C7;
+    --accent:#2F5D50;
+    --accent-ink:#FFFFFF;
+    --keep:#1F6B3B;
+    --keep-bg:#E7F2EA;
+    --remove:#8E2A21;
+    --remove-bg:#F7E6E3;
+    --monitor:#8A5A00;
+    --monitor-bg:#FBF0DC;
+    --unverified:#33517A;
+    --unverified-bg:#E9EEF6;
+    --focus:#0B5FFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;
+  }
+  main{
+    max-width:920px;
+    margin:0 auto;
+    padding:32px 20px 80px;
+  }
+  h1{
+    font-size:1.65rem;
+    margin:0 0 6px;
+    letter-spacing:-0.01em;
+  }
+  p.lede{
+    color:var(--muted);
+    margin:0 0 28px;
+    max-width:62ch;
+  }
+  section{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:22px 22px 24px;
+    margin-bottom:20px;
+  }
+  h2{
+    font-size:1.05rem;
+    margin:0 0 4px;
+  }
+  .hint{
+    color:var(--muted);
+    font-size:0.92rem;
+    margin:0 0 14px;
+  }
+  label{
+    display:block;
+    font-weight:600;
+    margin-bottom:6px;
+    font-size:0.95rem;
+  }
+  textarea{
+    width:100%;
+    min-height:160px;
+    padding:12px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:0.92rem;
+    resize:vertical;
+    background:#FDFDFB;
+    color:var(--ink);
+  }
+  textarea:focus, button:focus, select:focus, a.button:focus{
+    outline:3px solid var(--focus);
+    outline-offset:2px;
+  }
+  details{
+    margin-top:16px;
+    border-top:1px solid var(--border);
+    padding-top:14px;
+  }
+  summary{
+    cursor:pointer;
+    font-weight:600;
+    font-size:0.95rem;
+  }
+  details textarea{ margin-top:10px; min-height:100px; }
+  .actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    align-items:center;
+    margin-top:18px;
+  }
+  button{
+    font:inherit;
+    font-weight:600;
+    padding:11px 20px;
+    border-radius:8px;
+    border:1px solid var(--accent);
+    background:var(--accent);
+    color:var(--accent-ink);
+    cursor:pointer;
+  }
+  button.secondary{
+    background:transparent;
+    color:var(--accent);
+  }
+  button:disabled{
+    opacity:0.5;
+    cursor:not-allowed;
+  }
+  #status{
+    font-size:0.95rem;
+    color:var(--muted);
+    min-height:1.3em;
+  }
+  #summary{
+    font-size:1rem;
+    margin:0 0 4px;
+    font-weight:600;
+  }
+  .filter-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  select{
+    font:inherit;
+    padding:8px 10px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:#fff;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:0.93rem;
+  }
+  caption{
+    text-align:left;
+    color:var(--muted);
+    font-size:0.88rem;
+    margin-bottom:10px;
+  }
+  th,td{
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+  }
+  thead th{
+    border-bottom:2px solid var(--ink);
+    font-size:0.85rem;
+    text-transform:none;
+  }
+  td.email-cell{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    word-break:break-all;
+  }
+  .tag{
+    display:inline-block;
+    padding:3px 9px;
+    border-radius:999px;
+    font-weight:700;
+    font-size:0.82rem;
+    white-space:nowrap;
+  }
+  .tag-keep{ background:var(--keep-bg); color:var(--keep); }
+  .tag-remove{ background:var(--remove-bg); color:var(--remove); }
+  .tag-monitor{ background:var(--monitor-bg); color:var(--monitor); }
+  .tag-unverified{ background:var(--unverified-bg); color:var(--unverified); }
+  .visually-hidden{
+    position:absolute;
+    width:1px;height:1px;
+    padding:0;margin:-1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    white-space:nowrap;
+    border:0;
+  }
+  .empty-note{
+    color:var(--muted);
+    font-style:italic;
+  }
+  footer{
+    color:var(--muted);
+    font-size:0.85rem;
+    margin-top:30px;
+    max-width:62ch;
+  }
+  @media (max-width:600px){
+    th,td{padding:8px 6px;font-size:0.87rem;}
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Email List Checker</h1>
+  <p class="lede">Paste a list of email addresses. Each one is checked and given a clear instruction: keep, remove, keep &amp; monitor, or double-check with another verifier. Runs entirely in your browser - free, with no limits.</p>
+
+  <section aria-labelledby="input-heading">
+    <h2 id="input-heading">1. Paste your emails</h2>
+    <p class="hint">Paste column E from your spreadsheet - or any list of emails - one address per line. Duplicates are combined automatically.</p>
+    <label for="email-input">Email addresses</label>
+    <textarea id="email-input" placeholder="jane@example.com&#10;j.smith@company.co.uk&#10;info@business.com"></textarea>
+
+    <label for="reason-input">Bounce or verification reason (optional)</label>
+    <p class="hint">Paste column G here - a bounce reason from your platform, or a status from a verifier such as Reoon (safe, invalid, disposable, disabled, role_account, catch_all, unknown). Put it one per line, in the same row order as the emails above, so line 1 here matches line 1 above. Leave a line blank for any address you don't have this for.</p>
+    <textarea id="reason-input" placeholder="mailbox does not exist&#10;safe&#10;reported as spam"></textarea>
+
+    <div class="actions">
+      <button type="button" id="check-btn">Check emails</button>
+      <button type="button" id="clear-btn" class="secondary">Clear everything</button>
+      <span id="status" role="status" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <section aria-labelledby="results-heading" id="results-section" hidden>
+    <h2 id="results-heading">2. Results</h2>
+    <p id="summary" aria-live="polite"></p>
+
+    <div class="filter-row">
+      <label for="filter-select" style="margin-bottom:0;">Show</label>
+      <select id="filter-select">
+        <option value="all">All results</option>
+        <option value="keep">Keep only</option>
+        <option value="remove">Remove only</option>
+        <option value="monitor">Keep &amp; monitor only</option>
+        <option value="unverified">Unverified only</option>
+      </select>
+      <button type="button" id="download-btn" class="secondary">Download results as CSV</button>
+    </div>
+
+    <table id="results-table">
+      <caption>Each row is one email address from your list, with its mailbox status, a 0–100 score, the action to take, and the reason why.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Email</th>
+          <th scope="col">Mailbox status</th>
+          <th scope="col">Score (0–100)</th>
+          <th scope="col">Action</th>
+          <th scope="col">Reason</th>
+        </tr>
+      </thead>
+      <tbody id="results-body"></tbody>
+    </table>
+    <p id="no-rows" class="empty-note" hidden>No results match this filter.</p>
+  </section>
+
+  <footer>
+    <p>This tool checks address format, known disposable/temporary domains, role-based addresses (like info@ or sales@), likely typos, and whether the domain has a working mail server (MX record) - all free, unlimited checks. It cannot confirm that a specific mailbox actually exists or has previously bounced; for that, pair it with a dedicated verifier such as ZeroBounce or Reoon, both of which offer a genuinely free recurring monthly allowance (no card required) - useful for double-checking anything this tool marks "Unverified".</p>
+  </footer>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  var DISPOSABLE_DOMAINS = new Set([
+    "mailinator.com","guerrillamail.com","guerrillamail.org","guerrillamail.net","guerrillamail.biz",
+    "guerrillamail.de","guerrillamailblock.com","sharklasers.com","grr.la","spam4.me","pokemail.net",
+    "10minutemail.com","10minutemail.net","20minutemail.com","temp-mail.org","temp-mail.io","tempmail.com",
+    "tempmailo.com","tempinbox.com","tempr.email","throwawaymail.com","getnada.com","nada.email",
+    "yopmail.com","yopmail.fr","yopmail.net","trashmail.com","trashmail.me","trash-mail.com",
+    "mailnesia.com","mailcatch.com","mailnull.com","mytrashmail.com","dispostable.com","fakeinbox.com",
+    "fakemailgenerator.com","emailondeck.com","emailfake.com","maildrop.cc","mailsac.com","discard.email",
+    "mohmal.com","33mail.com","moakt.com","spambox.us","no-spam.ws","jetable.org","meltmail.com",
+    "0-mail.com","e4ward.com","harakirimail.com","spamex.com","burnermail.io","inboxbear.com",
+    "mintemail.com","tempinbox.co","mailtemp.info","mail-temporaire.fr","trbvm.com","spamgourmet.com",
+    "mytemp.email","luxusmail.org","anonbox.net","tafmail.com","dropmail.me","mailpoof.com","emailtemporario.com.br"
+  ]);
+
+  var FREE_MAJOR_DOMAINS = ["gmail.com","yahoo.com","outlook.com","hotmail.com","icloud.com","aol.com","live.com"];
+
+  var ROLE_PREFIXES = new Set([
+    "info","admin","administrator","support","sales","contact","help","service","office","enquiries",
+    "enquiry","hello","team","billing","accounts","hr","jobs","careers","marketing","noreply","no-reply",
+    "donotreply","do-not-reply","webmaster","postmaster","abuse","security","privacy","legal","press",
+    "media","feedback","orders","booking","bookings","reservations","reception"
+  ]);
+
+  var EMAIL_RE = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+
+  function levenshtein(a,b){
+    var m=a.length,n=b.length;
+    var dp=new Array(n+1);
+    for(var j=0;j<=n;j++) dp[j]=j;
+    for(var i=1;i<=m;i++){
+      var prev=dp[0];
+      dp[0]=i;
+      for(var jj=1;jj<=n;jj++){
+        var temp=dp[jj];
+        dp[jj]=Math.min(
+          dp[jj]+1,
+          dp[jj-1]+1,
+          prev+(a[i-1]===b[jj-1]?0:1)
+        );
+        prev=temp;
+      }
+    }
+    return dp[n];
+  }
+
+  function suggestTypoFix(domain){
+    var best=null, bestDist=99;
+    for(var i=0;i<FREE_MAJOR_DOMAINS.length;i++){
+      var d=FREE_MAJOR_DOMAINS[i];
+      if(d===domain) return null;
+      var dist=levenshtein(domain,d);
+      if(dist<bestDist){ bestDist=dist; best=d; }
+    }
+    if(bestDist>0 && bestDist<=2) return best;
+    return null;
+  }
+
+  function uniqueCaseInsensitive(list){
+    var counts={}, order=[];
+    list.forEach(function(e){
+      var key=e.toLowerCase();
+      if(!(key in counts)){ counts[key]=0; order.push(e); }
+      counts[key]++;
+    });
+    return order.map(function(e){ return {email:e, count:counts[e.toLowerCase()]}; });
+  }
+
+  function pairEmailsWithReasons(emailRaw, reasonRaw){
+    var emailLines = emailRaw.split(/\r?\n/);
+    var reasonLines = reasonRaw.split(/\r?\n/);
+    var rawEmails = [];
+    var reasonMap = {};
+    emailLines.forEach(function(line, idx){
+      var trimmedLine = line.trim();
+      if(!trimmedLine) return;
+      var found = trimmedLine.match(/[^\s,;]+@[^\s,;]+/g);
+      if(!found || found.length === 0) return;
+      var pairedReason = (reasonLines[idx] || "").trim();
+      found.forEach(function(e){
+        rawEmails.push(e);
+        var key = e.toLowerCase();
+        if(pairedReason && !reasonMap[key]){
+          reasonMap[key] = pairedReason;
+        }
+      });
+    });
+    return { rawEmails: rawEmails, reasonMap: reasonMap };
+  }
+
+  var SPAM_KEYWORDS = ["spam","complaint","abuse","blacklist","black list","blocklist","block list","blocked","unsubscribe","reported"];
+  var HARD_BOUNCE_KEYWORDS = ["does not exist","doesn't exist","no such user","no such address",
+    "no such mailbox","invalid recipient","invalid mailbox","invalid address","unknown user","user unknown",
+    "mailbox unavailable","recipient rejected","address rejected","domain not found","host not found",
+    "nxdomain","hard bounce","permanent failure","undeliverable","not found","recipientnotfound",
+    "account disabled","address disabled"];
+  var SOFT_BOUNCE_KEYWORDS = ["mailbox full","quota exceeded","over quota","quota issue","quota",
+    "temporarily","temp fail","try again","greylist","greylisted","throttle","throttled","rate limit",
+    "message too large","server busy","soft bounce","try later","deferred","connection timed out","timeout"];
+
+  function matchesAny(text, keywords){
+    for(var i=0;i<keywords.length;i++){
+      if(text.indexOf(keywords[i]) !== -1) return true;
+    }
+    return false;
+  }
+
+  function classifyBounceReason(reasonRaw){
+    // Normalize hyphens/underscores to spaces so "bad-mailbox" matches the same
+    // phrases as "bad mailbox", without needing every hyphenated variant listed separately.
+    var t = reasonRaw.toLowerCase().replace(/[-_]/g, " ").replace(/\s+/g, " ");
+    var trimmed = t.trim();
+
+    if(trimmed.indexOf("bad mailbox") !== -1) return { category:"hard" };
+    if(trimmed.indexOf("spam reporting address") !== -1 || trimmed.indexOf("spam complaint") !== -1) return { category:"spam" };
+    if(trimmed.indexOf("invalid sender") !== -1) return { category:"sender_issue" };
+    if(trimmed.indexOf("policy related") !== -1) return { category:"blocked_policy" };
+    if(trimmed.indexOf("routing error") !== -1) return { category:"routing" };
+    if(trimmed === "other") return { category:"unclear" };
+
+    if(t.indexOf("access denied") !== -1 && t.indexOf("rejected") !== -1) return { category:"blocked_policy" };
+
+    if(matchesAny(t, SPAM_KEYWORDS)) return { category:"spam" };
+    if(matchesAny(t, HARD_BOUNCE_KEYWORDS)) return { category:"hard" };
+    if(matchesAny(t, SOFT_BOUNCE_KEYWORDS)) return { category:"soft" };
+
+    var codeMatch = t.match(/\b([245])\.\d{1,3}\.\d{1,3}\b/);
+    if(codeMatch){
+      if(codeMatch[1] === "5") return { category:"hard" };
+      if(codeMatch[1] === "4") return { category:"soft" };
+    }
+
+    return { category:"unclear" };
+  }
+
+  function bounceResultFor(reasonRaw){
+    var classified = classifyBounceReason(reasonRaw);
+    var quoted = ' ("' + reasonRaw + '")';
+    switch(classified.category){
+      case "spam":
+        return { action:"monitor", status:"Reported as spam/blocked", score:45, reason:"Marked as spam or blocked" + quoted + ". Keep it on record, but don't email this address again until you've checked it." };
+      case "hard":
+        return { action:"remove", status:"Hard bounce - does not exist", score:0, reason:"This bounced back as not existing" + quoted + ". Remove it from your list." };
+      case "soft":
+        return { action:"monitor", status:"Soft bounce - temporary", score:50, reason:"This bounced back, but it's often a temporary problem like a full inbox" + quoted + ". Keep it for now, but remove if it bounces again." };
+      case "blocked_policy":
+        return { action:"monitor", status:"Blocked by recipient server", score:50, reason:"Their email provider blocked your message" + quoted + ". This is usually about spam filters or your sending reputation, not that the address is wrong. Keep the contact, but check your own email setup if this keeps happening." };
+      case "routing":
+        return { action:"unverified", status:"Routing error - unclear", score:35, reason:"There was a delivery error" + quoted + ". This might mean the address doesn't work, or it could just be a temporary glitch. Check with another tool before removing it." };
+      case "sender_issue":
+        return { action:"unverified", status:"Sender issue flagged (not mailbox)", score:40, reason:"This was flagged as an \"Invalid Sender\" issue" + quoted + ". That's usually about your own email settings, not this contact's address, so it may still be fine. Double-check with another tool." };
+      default:
+        return { action:"unverified", status:"Bounce reason unclear", score:30, reason:"Your platform reported a problem" + quoted + ", but it's not clear what went wrong. Check this one manually or with another tool." };
+    }
+  }
+
+  var mxCache={};
+
+  var REOON_EXACT_STATUSES = {
+    "safe":"safe","invalid":"invalid","disposable":"disposable","disabled":"disabled",
+    "role_account":"role_account","role account":"role_account",
+    "catch_all":"catch_all","catch all":"catch_all","unknown":"unknown"
+  };
+
+  function reoonResultFor(status){
+    switch(status){
+      case "safe":
+        return { action:"keep", status:"Deliverable (verified)", score:95, reason:"Checked and confirmed as a working, safe address." };
+      case "invalid":
+        return { action:"remove", status:"Does not exist", score:0, reason:"Checked and confirmed as not working. Remove it from your list." };
+      case "disposable":
+        return { action:"remove", status:"Disposable domain", score:5, reason:"This looks like a temporary, throwaway email address. Remove it from your list." };
+      case "disabled":
+        return { action:"remove", status:"Mailbox disabled", score:5, reason:"This mailbox has been switched off or closed down. Remove it from your list." };
+      case "role_account":
+        return { action:"monitor", status:"Role-based address", score:65, reason:"This is a shared inbox (like info@ or sales@) rather than a named person. Keep it, but expect lower engagement." };
+      case "catch_all":
+        return { action:"monitor", status:"Catch-all domain", score:55, reason:"This company's email system accepts everything sent to it, so we can't be fully sure this exact address is real. Keep it for now and watch for bounces." };
+      case "unknown":
+        return { action:"unverified", status:"Unconfirmed", score:35, reason:"Your checker couldn't work out whether this address is good or not. Double-check with another tool before sending." };
+      default:
+        return { action:"unverified", status:"Unrecognised status", score:35, reason:"Your checker gave a result we don't recognise. Double-check with another tool." };
+    }
+  }
+
+  function classifyPairedReason(reasonRaw){
+    var cleaned = reasonRaw.trim().replace(/^["']+|["']+$/g,"").replace(/[.\s]+$/,"").toLowerCase();
+    if(Object.prototype.hasOwnProperty.call(REOON_EXACT_STATUSES, cleaned)){
+      return reoonResultFor(REOON_EXACT_STATUSES[cleaned]);
+    }
+    return bounceResultFor(reasonRaw);
+  }
+
+  function checkMx(domain){
+    if(domain in mxCache) return mxCache[domain];
+    var promise = fetch("https://cloudflare-dns.com/dns-query?name="+encodeURIComponent(domain)+"&type=MX", {
+      headers: { "Accept": "application/dns-json" }
+    }).then(function(res){
+      if(!res.ok) throw new Error("dns http error");
+      return res.json();
+    }).then(function(json){
+      if(json.Status === 3) return "nxdomain";
+      if(json.Answer && json.Answer.length > 0) return "has_mx";
+      return "no_mx";
+    }).catch(function(){
+      return "unknown";
+    });
+    mxCache[domain]=promise;
+    return promise;
+  }
+
+  function classify(entry, reasonMap){
+    var email = entry.email;
+    var countNote = entry.count > 1 ? " Appears " + entry.count + " times in your pasted list." : "";
+
+    if(!EMAIL_RE.test(email)){
+      return Promise.resolve({
+        action:"remove",
+        status:"Invalid format",
+        score:0,
+        reason:"This isn't written like a real email address." + countNote
+      });
+    }
+
+    var lower = email.toLowerCase();
+    var atIndex = lower.lastIndexOf("@");
+    var local = lower.slice(0, atIndex);
+    var domain = lower.slice(atIndex+1);
+
+    if(Object.prototype.hasOwnProperty.call(reasonMap, lower) && reasonMap[lower]){
+      var pairedResult = classifyPairedReason(reasonMap[lower]);
+      return Promise.resolve({
+        action: pairedResult.action,
+        status: pairedResult.status,
+        score: pairedResult.score,
+        reason: pairedResult.reason + countNote
+      });
+    }
+
+    if(DISPOSABLE_DOMAINS.has(domain)){
+      return Promise.resolve({
+        action:"remove",
+        status:"Disposable domain",
+        score:5,
+        reason:"Uses a temporary, throwaway email domain (" + domain + "). Unlikely to be a real long-term contact." + countNote
+      });
+    }
+
+    if(ROLE_PREFIXES.has(local)){
+      return Promise.resolve({
+        action:"monitor",
+        status:"Role-based address",
+        score:65,
+        reason:"This is a shared inbox (" + local + "@) rather than a named person. Keep it, but expect lower engagement." + countNote
+      });
+    }
+
+    var typoFix = suggestTypoFix(domain);
+    if(typoFix){
+      return Promise.resolve({
+        action:"unverified",
+        status:"Possible domain typo",
+        score:40,
+        reason:"The domain \"" + domain + "\" might be misspelled. Did you mean \"" + typoFix + "\"? Check with the contact, or run it through another tool, before sending." + countNote
+      });
+    }
+
+    return checkMx(domain).then(function(mxResult){
+      if(mxResult === "nxdomain"){
+        return {
+          action:"remove",
+          status:"Domain does not exist",
+          score:0,
+          reason:"The domain \"" + domain + "\" doesn't exist, so nothing can be delivered here. Remove it." + countNote
+        };
+      }
+      if(mxResult === "no_mx"){
+        return {
+          action:"remove",
+          status:"No mail server (no MX)",
+          score:0,
+          reason:"The domain \"" + domain + "\" isn't set up to receive email at all. Remove it." + countNote
+        };
+      }
+      if(mxResult === "unknown"){
+        return {
+          action:"unverified",
+          status:"Unconfirmed (network check failed)",
+          score:35,
+          reason:"We couldn't check whether this domain accepts email. Double-check manually or with another tool before sending." + countNote
+        };
+      }
+      return {
+        action:"keep",
+        status:"Deliverable (MX confirmed)",
+        score:85,
+        reason:"Looks correctly formatted, and the domain can receive email." + countNote
+      };
+    });
+  }
+
+  var ACTION_LABELS = {
+    keep:{ text:"Keep", cls:"tag-keep" },
+    remove:{ text:"Remove", cls:"tag-remove" },
+    monitor:{ text:"Keep & monitor", cls:"tag-monitor" },
+    unverified:{ text:"Unverified - double-check", cls:"tag-unverified" }
+  };
+
+  var lastResults = [];
+
+  var inputEl = document.getElementById("email-input");
+  var reasonEl = document.getElementById("reason-input");
+  var checkBtn = document.getElementById("check-btn");
+  var clearBtn = document.getElementById("clear-btn");
+  var statusEl = document.getElementById("status");
+  var resultsSection = document.getElementById("results-section");
+  var summaryEl = document.getElementById("summary");
+  var tbody = document.getElementById("results-body");
+  var filterSelect = document.getElementById("filter-select");
+  var downloadBtn = document.getElementById("download-btn");
+  var noRowsEl = document.getElementById("no-rows");
+
+  function renderTable(){
+    var filter = filterSelect.value;
+    tbody.innerHTML = "";
+    var visible = 0;
+    lastResults.forEach(function(row){
+      if(filter !== "all" && row.action !== filter) return;
+      visible++;
+      var tr = document.createElement("tr");
+
+      var th = document.createElement("th");
+      th.setAttribute("scope","row");
+      th.className = "email-cell";
+      th.textContent = row.email;
+      tr.appendChild(th);
+
+      var tdStatus = document.createElement("td");
+      tdStatus.textContent = row.status;
+      tr.appendChild(tdStatus);
+
+      var tdScore = document.createElement("td");
+      tdScore.textContent = String(row.score);
+      tr.appendChild(tdScore);
+
+      var tdAction = document.createElement("td");
+      var span = document.createElement("span");
+      span.className = "tag " + ACTION_LABELS[row.action].cls;
+      span.textContent = ACTION_LABELS[row.action].text;
+      tdAction.appendChild(span);
+      tr.appendChild(tdAction);
+
+      var tdReason = document.createElement("td");
+      tdReason.textContent = row.reason;
+      tr.appendChild(tdReason);
+
+      tbody.appendChild(tr);
+    });
+    noRowsEl.hidden = visible !== 0;
+  }
+
+  filterSelect.addEventListener("change", renderTable);
+
+  checkBtn.addEventListener("click", function(){
+    var paired = pairEmailsWithReasons(inputEl.value, reasonEl.value);
+    if(paired.rawEmails.length === 0){
+      statusEl.textContent = "Paste at least one email address first.";
+      return;
+    }
+
+    var entries = uniqueCaseInsensitive(paired.rawEmails);
+
+    checkBtn.disabled = true;
+    statusEl.textContent = "Checking " + entries.length + " address" + (entries.length===1?"":"es") + ", please wait…";
+    resultsSection.hidden = true;
+
+    Promise.all(entries.map(function(entry){
+      return classify(entry, paired.reasonMap).then(function(result){
+        return { email: entry.email, action: result.action, status: result.status, score: result.score, reason: result.reason };
+      });
+    })).then(function(results){
+      lastResults = results;
+      var counts = { keep:0, remove:0, monitor:0, unverified:0 };
+      results.forEach(function(r){ counts[r.action]++; });
+
+      var summaryText = "Checked " + results.length + " address" + (results.length===1?"":"es") + ": " +
+        counts.keep + " to keep, " +
+        counts.remove + " to remove, " +
+        counts.monitor + " to keep & monitor, " +
+        counts.unverified + " unverified.";
+
+      filterSelect.value = "all";
+      resultsSection.hidden = false;
+      renderTable();
+      summaryEl.textContent = summaryText;
+      statusEl.textContent = summaryText;
+      checkBtn.disabled = false;
+      resultsSection.scrollIntoView({behavior:"smooth", block:"start"});
+    }).catch(function(err){
+      statusEl.textContent = "Something went wrong while checking. Please try again.";
+      checkBtn.disabled = false;
+    });
+  });
+
+  clearBtn.addEventListener("click", function(){
+    inputEl.value = "";
+    reasonEl.value = "";
+    lastResults = [];
+    resultsSection.hidden = true;
+    statusEl.textContent = "Cleared.";
+    inputEl.focus();
+  });
+
+  downloadBtn.addEventListener("click", function(){
+    if(lastResults.length === 0) return;
+    var rows = [["Email","Mailbox Status","Score","Action","Reason"]];
+    lastResults.forEach(function(r){
+      rows.push([r.email, r.status, r.score, ACTION_LABELS[r.action].text, r.reason]);
+    });
+    var csv = rows.map(function(row){
+      return row.map(function(cell){
+        var c = String(cell).replace(/"/g,'""');
+        return '"' + c + '"';
+      }).join(",");
+    }).join("\r\n");
+    var blob = new Blob(["\uFEFF" + csv], {type:"text/csv;charset=utf-8;"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "email-check-results.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+})();
+</script>
+</body>
+</html>
